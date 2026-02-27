@@ -37,6 +37,7 @@ jobs:
     name: gitStream workflow automation
     env:
       JIRA_CHANGE_STATUS_WEBHOOK: ${{ secrets.JIRA_CHANGE_STATUS_WEBHOOK }}
+      JIRA_WEBHOOK_SECRET: ${{ secrets.JIRA_WEBHOOK_SECRET }}
     steps:
       - name: Adding PR Url
         run: |
