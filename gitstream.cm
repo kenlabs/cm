@@ -32,7 +32,7 @@ automations:
         args:
           url: "{{ env.JIRA_CHANGE_STATUS_WEBHOOK }}"
           method: POST
-          headers: '{"Content-type": "application/json"}'
+          headers: '{"Content-type": "application/json", "X-Automation-Webhook-Token": "{{ env.JIRA_WEBHOOK_SECRET }}"}'
           body: '{"issues":["{{ticketid}}"],"data":{"pr_url":"https://github.com/{{repo.owner}}/{{repo.name}}/pull/{{pr.number}}"}}'
 
   label_missing_jira:
