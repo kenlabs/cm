@@ -1,0 +1,35 @@
+# -*- mode: yaml -*-
+
+manifest:
+  version: 1.0
+
+automations:
+  label_missing_jira:
+    if:
+      - {{ not (pr.title | includes(regex=r/\b[A-Z]+-\d+\b/)) }}
+    run:
+      - action: add-label@v1
+        args:
+          label: "missing-jira-ticket"
+          color: "d93f0b"
+
+  link_jira_ticket:
+    if:
+      - {{ pr.title | includes(regex=r/\b[A-Z]+-\d+\b/) }}
+    run:
+      - action: add-comment@v1
+        args:
+          comment: |
+            🎫 Jira ticket detected: {{ pr.title | capture(regex=r/\b[A-Z]+-\d+\b/) }}
+            [View in Jira](https://tavloapp.atlassian.net/browse/{{ pr.title | capture(regex=r/\b[A-Z]+-\d+\b/) }})
+
+  move_to_in_progress:
+    if:
+      - {{ pr.title | includes(regex=r/\b[A-Z]+-\d+\b/) }}
+    run:
+      - action: send-http-request@v1
+        args:
+          url: "{{ env.JIRA_CHANGE_STATUS_WEBHOOK }}"
+          method: POST
+          headers: '{"Content-Type": "application/json"}'
+          body: '{"issues": ["{{ pr.title | capture(regex=r/\b[A-Z]+-\d+\b/) }}"]}'
