@@ -3,33 +3,50 @@
 manifest:
   version: 1.0
 
+on:
+  - pr_created
+
+{% set ticketid = "\b[A-Za-z]+-\d+\b" %}
+{% for ticket in tickets %}
+{% if (ticket | includes(regex=r/.+/)) %}
+{% set ticketid = ticket %}
+{% endif %}
+{% endfor %}
+
 automations:
+  link_jira_ticket:
+    if:
+      - {{ has.jira_ticket_in_title }}
+    run:
+      - action: add-comment@v1
+        args:
+          comment: |
+            🎫 Jira ticket detected: {{ticketid}}
+            [View in Jira](https://tavloapp.atlassian.net/browse/{{ticketid}})
+
+  move_to_in_progress:
+    if:
+      - {{ has.jira_ticket_in_title }}
+    run:
+      - action: send-http-request@v1
+        args:
+          url: "{{ env.JIRA_CHANGE_STATUS_WEBHOOK }}"
+          method: POST
+          headers: '{"Content-type": "application/json"}'
+          body: '{"issues":["{{ticketid}}"],"data":{"pr_url":"https://github.com/{{repo.owner}}/{{repo.name}}/pull/{{pr.number}}"}}'
+
   label_missing_jira:
     if:
-      - {{ not (pr.title | includes(regex=r/\b[A-Z]+-\d+\b/)) }}
+      - {{ not has.jira_ticket_in_title }}
     run:
       - action: add-label@v1
         args:
           label: "missing-jira-ticket"
           color: "d93f0b"
 
-  link_jira_ticket:
-    if:
-      - {{ pr.title | includes(regex=r/\b[A-Z]+-\d+\b/) }}
-    run:
-      - action: add-comment@v1
-        args:
-          comment: |
-            🎫 Jira ticket detected: {{ pr.title | capture(regex=r/\b[A-Z]+-\d+\b/) }}
-            [View in Jira](https://tavloapp.atlassian.net/browse/{{ pr.title | capture(regex=r/\b[A-Z]+-\d+\b/) }})
+has:
+  jira_ticket_in_title: {{ pr.title | includes(regex=r/\b[A-Za-z]+-\d+\b/) }}
 
-  move_to_in_progress:
-    if:
-      - {{ pr.title | includes(regex=r/\b[A-Z]+-\d+\b/) }}
-    run:
-      - action: send-http-request@v1
-        args:
-          url: "{{ env.JIRA_CHANGE_STATUS_WEBHOOK }}"
-          method: POST
-          headers: '{"Content-Type": "application/json"}'
-          body: '{"issues": ["{{ pr.title | capture(regex=r/\b[A-Z]+-\d+\b/) }}"]}'
+tickets:
+  - {{ branch.name | capture(regex=r/\b[A-Za-z]+-\d+\b/) }}
+  - {{ pr.title | capture(regex=r/\b[A-Za-z]+-\d+\b/) }}
