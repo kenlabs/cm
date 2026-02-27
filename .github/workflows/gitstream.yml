@@ -35,6 +35,8 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     name: gitStream workflow automation
+    env:
+      JIRA_CHANGE_STATUS_WEBHOOK: ${{ secrets.JIRA_CHANGE_STATUS_WEBHOOK }}
     steps:
       - name: Adding PR Url
         run: |
