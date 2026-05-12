@@ -1,0 +1,46 @@
+# -*- mode: yaml -*-
+manifest:
+  version: 1.0
+
+automations:
+
+  label_missing_jira_info:
+    if:
+      - {{ not pr.draft }}
+      - {{ not (is.bot_author or is.bot_branch) }}
+      - {{ not (has.jira_ticket_in_title or has.jira_ticket_in_desc) }}
+    run:
+      - action: add-label@v1
+        args:
+          label: "missing-jira"
+          color: 'F6443B'
+      - action: add-comment@v1
+        args:
+          comment: |
+            ⚠️ **This PR is missing a Jira ticket reference.**
+
+            Please add a Jira ticket key (e.g. `FRESH-1234`) to the PR title,
+            or a Jira URL to the PR description.
+
+            Why this matters: every PR needs to roll up to KTLO, feature, or
+            migration work so engineering investment is fully attributable.
+
+  assign_code_experts:
+    if:
+      - {{ not pr.draft }}
+      - {{ not (is.bot_author or is.bot_branch) }}
+    run:
+      - action: add-reviewers@v1
+        args:
+          reviewers: {{ repo | codeExperts(gt=0) }}
+      - action: explain-code-experts@v1
+        args:
+          gt: 0
+
+has:
+  jira_ticket_in_title: {{ pr.title | includes(regex=r/\b[A-Za-z]+-\d+\b/) }}
+  jira_ticket_in_desc:  {{ pr.description | includes(regex=r/atlassian\.net\/browse\/\w+-\d+/) }}
+
+is:
+  bot_author: {{ pr.author | match(list=['dependabot', 'renovate', 'snyk-bot', '[bot]', 'github-actions']) | some }}
+  bot_branch: {{ branch.name | match(list=['dependabot/', 'renovate/', 'snyk-']) | some }}
