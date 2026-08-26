@@ -54,8 +54,13 @@ automations:
           gt: 0
 
 has:
-  jira_ticket_in_title: {{ pr.title | includes(regex=r/\b[A-Za-z]+-\d+\b/) }}
-  jira_ticket_in_desc:  {{ pr.description | includes(regex=r/atlassian\.net\/browse\/\w+-\d+/) }}
+  jira_ticket_in_title: "{{ pr.title | includes(regex=r/\b[A-Za-z]+-\d+\b/) }}"
+  jira_ticket_in_desc: "{{ pr.description | includes(regex=r/atlassian\.net\/browse\/\w+-\d+/) }}"
 
 is:
-  bot_author: {{ pr.author | match(list=['dependabot', 'renovate', 'snyk-bot', '[bot]',
+  bot_author: "{{ pr.author | match(list=['dependabot', 'renovate', 'snyk-bot', '[bot]', 'github-actions']) | some }}"
+  bot_branch: "{{ branch.name | match(list=['dependabot/', 'renovate/', 'snyk-']) | some }}"
+
+tickets:
+  - "{{ branch.name | capture(regex=r/\b[A-Za-z]+-\d+\b/) }}"
+  - "{{ pr.title | capture(regex=r/\b[A-Za-z]+-\d+\b/) }}"
