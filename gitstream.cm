@@ -2,8 +2,14 @@
 manifest:
   version: 1.0
 
-automations:
+{% set ticketid = "" %}
+{% for ticket in tickets %}
+{% if (ticket | includes(regex=r/.+/)) %}
+{% set ticketid = ticket %}
+{% endif %}
+{% endfor %}
 
+automations:
   label_missing_jira_info:
     if:
       - {{ not pr.draft }}
@@ -18,12 +24,22 @@ automations:
         args:
           comment: |
             ⚠️ **This PR is missing a Jira ticket reference.**
-
             Please add a Jira ticket key (e.g. `FRESH-1234`) to the PR title,
             or a Jira URL to the PR description.
-
             Why this matters: every PR needs to roll up to KTLO, feature, or
             migration work so engineering investment is fully attributable.
+
+  link_jira_ticket:
+    if:
+      - {{ not pr.draft }}
+      - {{ not (is.bot_author or is.bot_branch) }}
+      - {{ has.jira_ticket_in_title }}
+    run:
+      - action: add-comment@v1
+        args:
+          comment: |
+            🎫 Jira ticket detected: {{ ticketid }}
+            [View in Jira](https://kschooooff.atlassian.net/browse/{{ ticketid }})
 
   assign_code_experts:
     if:
@@ -42,5 +58,4 @@ has:
   jira_ticket_in_desc:  {{ pr.description | includes(regex=r/atlassian\.net\/browse\/\w+-\d+/) }}
 
 is:
-  bot_author: {{ pr.author | match(list=['dependabot', 'renovate', 'snyk-bot', '[bot]', 'github-actions']) | some }}
-  bot_branch: {{ branch.name | match(list=['dependabot/', 'renovate/', 'snyk-']) | some }}
+  bot_author: {{ pr.author | match(list=['dependabot', 'renovate', 'snyk-bot', '[bot]',
